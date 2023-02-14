@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>震度分布図 for MiyakoCam</title>
+        <meta charset="UTF-8" lang="ja">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta name="description" content="震度分布図 for MiyakoCam">
+        <!--SNSでのサイト表示-->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:site" content="@MiyakoCam">
+        <meta property="twitter:description" content="震度の広がりを地図で一覧で見ることができます。カスタマイズも可能です。">
+        <meta property="og:title" content="震度分布図 for MiyakoCam">
+        <meta property="og:site_name" content="震度分布図 for MiyakoCam">
+        <meta property="og:image" content="http://nanka.html.xdomain.jp/html/quake/source/shindobunpu.png">
+        <!--その他のCSS・ライブラリ読み込み-->
+        <script src="https://kit.fontawesome.com/e9f92a9dd0.js" crossorigin="anonymous"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-9SL593EYR6"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            
+            gtag('config', 'G-9SL593EYR6');
+        </script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ==" crossorigin="" />
+        <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+        <script src="../../html/RealtimeQuakeInfo/static/js/leaflet-src.js"></script>
+        <link rel="stylesheet" href="../../html/RealtimeQuakeInfo/static/css/font.css">
+        <style>
+            html {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+                margin: 0;
+                font-size: 14px;
+            }
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                font-size: 14px;
+            }
+            select, input, button {
+                outline: none;
+            }
+            input[type="number"]::-webkit-outer-spin-button, 
+            input[type="number"]::-webkit-inner-spin-button { 
+                -webkit-appearance: none; 
+                margin: 0; 
+            } 
+            input[type="number"] { 
+                -moz-appearance:textfield; 
+            } 
+            #map {
+                width: 100%;
+                height: 100%;
+            }
+            #map.background_nerv {
+                background: #1d1d1d;
+            }
+            #map.background_wni {
+                background: linear-gradient(180deg, rgba(113,163,198,1) 0%, rgba(43,70,119,1) 100%);
+            }
+            #map.background_quarog {
+                background: #78A0C8;
+            }
+            .leaflet-popup {
+                margin-bottom: 0;
+            }
+            .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+                background-color: rgba(255, 255, 255, 0.85);
+                box-shadow: 0px 3px 7px 2px rgba(0, 0, 0, 0.4);
+                border-radius: 0!important;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                user-select: none;
+            }
+            .leaflet-popup-content {
+                color: black !important;
+                font-size: 1.4rem;
+                margin: 10px 8px 8px 8px;
+            }
+            .leaflet-popup-tip {
+                display: none;
+            }
+            .leaflet-fade-anim .leaflet-popup {
+                transition: 0s;
+            }
+            #title {
+                position: absolute;
+                top: 30px;
+                left: -10px;
+                z-index: 10000;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 600;
+                user-select: none;
+            }
+            #title_text {
+                padding: 10px;
+                padding-left: 20px;
+                font-size: 1.6rem;
+                border: #1f57be 4px solid;
+                background: #ffffff;
+                color: #1f57be;
+                vertical-align: bottom;
+            }
+            #title_time {
+                padding: 10px;
+                padding-left: 25px;
+                font-size: 1.4rem;
+                background: #00000088;
+                color: white;
+            }
+            #title_time .small {
+                font-size: 80%;
+                letter-spacing: 2px;
+            }
+            #info {
+                position: absolute;
+                top: calc(30px + 40px + 1.6rem + 1.4rem + 30px);
+                left: 15px;
+                z-index: 10000;
+                padding: 10px;
+                font-size: 1.4rem;
+                background: #00000088;
+                color: white;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                line-height: 1.8rem;
+                min-width: 13em;
+            }
+            #info .maxint {
+                font-size: 2rem;
+                text-align: center;
+                line-height: 2.2rem;
+            }
+            #info .maxint img, .shindo_ichiran_kakutitle img {
+                height: 1em;
+                transform: translateY(8%);
+                margin-left: 5px;
+            }
+            .shindo_ichiran_kakutitle .kasho_small, #shindo_ichiran .small {
+                font-size: 80%;
+            }
+            .btns {
+                position: absolute;
+                bottom: 10px;
+                left: 10px;
+                z-index: 10000;
+                user-select: none;
+            }
+            .setsumei, #quakelist, #reload, #map_ichi, #test, #btn_shindo_ichiran, #autoreload {
+                display: inline-block;
+                background: #00000088;
+                border: white 2.5px solid;
+                border-radius: 5px;
+                color: white;
+                padding: 5px;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                font-size: 0.9rem;
+                cursor: pointer;
+            }
+            #reload, #autoreload {
+                background: #00000000;
+                padding: 5px;
+                border: none;
+            }
+            #reload_num, #autoreload_num {
+                background: #00000000;
+                border: 0;
+                width: 2rem;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                font-size: 0.9rem;
+                color: white;
+                border-bottom: #ffffff 1px solid;
+            }
+            .setsumei {
+                cursor: default;
+            }
+            .autoreload_setsumei.on {
+                background: #ffffff;
+                color: black;
+            }
+            .autoreload_setsumei.on button, .autoreload_setsumei.on input {
+                color: black!important;
+            }
+            .autoreload_setsumei.on input {
+                border-bottom: #000000 1px solid!important;
+            }
+            #quakelist option {
+
+            }
+            #shindo_ichiran {
+                width: 30rem;
+                height: 80%;
+                position: absolute;
+                right: 3rem;
+                top: 3%;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                font-size: 1.5rem;
+                padding: 1%;
+                color: #000000;
+                background: #ffffff;
+                border: #1f57be 3px solid;
+                border-radius: 5px;
+                z-index: 10000;
+                overflow-y: auto;
+                overflow-x: hidden;
+                display: none;
+            }
+            #shindo_ichiran.display {
+                display: initial;
+                animation: shindo_ichiran_display 0.5s ease-in-out 0s;
+            }
+            #shindo_ichiran.display_none {
+                animation-fill-mode: forwards;
+                animation: shindo_ichiran_display_back 0.5s ease-in-out 0s;
+            }
+            
+            #shindo_ichiran ruby {
+                white-space: nowrap;
+            }
+            #shindo_ichiran rt {
+                font-size: 0.7em;
+            }
+            #shindo_ichiran .display {
+                display: none;
+            }
+            #shindo_ichiran .shindo_ichiran_title {
+                position: relative;
+                text-align: center;
+                font-size: 2rem;
+                color: #1f57be;
+                padding: 0 calc(100% - 10em);
+            }
+            #shindo_ichiran #shindoichiran_title_num {
+                text-align: center;
+                margin: 0.25em 0;
+                font-size: 1.5rem;
+                color: #1f57be;
+            }
+            #shindo_ichiran .shindo_ichiran_title::before,
+            #shindo_ichiran .shindo_ichiran_title::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                display: inline-block;
+                width: calc(100% - 11em);
+                height: 3px;
+                border-top: 3px solid #1f57be;
+            }
+            #shindo_ichiran .shindo_ichiran_title::before {left:0;}
+            #shindo_ichiran .shindo_ichiran_title::after {right: 0;}
+            #shindo__article, #shindo7_article, #shindo65_article, #shindo60_article, #shindo55_article, #shindo50_article, #shindo4_article, #shindo3_article, #shindo2_article, #shindo1_article {
+                margin-top: 0.3em;
+                margin-bottom: 0.7em;
+                font-size: 0.8em;
+                margin-left: 0.5em;
+            }
+            #shindo_ichiran hr {
+                border-bottom: #1f57be 2px solid;
+                margin: 0.5em 0;
+            }
+            #shindo_ichiran::-webkit-scrollbar {
+                width: 14px;
+            }
+            #shindo_ichiran::-webkit-scrollbar-track {
+                background: #e4e4e4;
+            }
+            #shindo_ichiran::-webkit-scrollbar-thumb {
+                background: #5a5a5a;
+                border: transparent 3.5px solid;
+                border-radius: 16px;
+                background-clip: content-box;
+            }
+            #theme_set input[type=radio], #icon_theme_set input[type=radio] {
+                display: none;
+            }
+            #theme_set label, #icon_theme_set label {
+                display: inline-block;
+                background: #00000000;
+                border: white 2.5px solid;
+                border-radius: 5px;
+                color: white;
+                padding: 3px 5px;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                font-size: 0.9rem;
+                cursor: pointer;
+            }
+            #theme_set label:first-of-type, #icon_theme_set label:first-of-type {
+                margin-left: 3px;
+            }
+            #theme_set input[type=radio]:checked+label, #icon_theme_set input[type=radio]:checked+label {
+                background: #ffffff;
+                color: black;
+            }
+            .shindoichiran input[type=checkbox] {
+                display: none;
+            }
+            .shindoichiran label {
+                display: inline-block;
+                background: #00000088;
+                border: white 2.5px solid;
+                border-radius: 5px;
+                color: white;
+                padding: 5px;
+                font-family: "ヒラギノ角ゴ-Pro",'Noto Sans JP';
+                font-weight: 500;
+                font-size: 0.9rem;
+                cursor: pointer;
+            }
+            .shindoichiran input[type=checkbox]:checked+label {
+                background: #ffffff;
+                color: black;
+            }
+
+            @keyframes shindo_ichiran_display {
+                0% { opacity: 0; }
+                100% { opacity: 1; }
+            }
+            @keyframes shindo_ichiran_display_back {
+                0% { opacity: 1; }
+                100% { opacity: 0; 
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map" class="background_nerv"></div>
+        <div id="title">
+            <div id="title_text">震度分布図 - 観測点モード</div>
+            <div id="title_time">00<span class="small">月</span>00<span class="small">日</span> 00<span class="small">時</span>00<span class="small">分</span>00<span class="small">秒</span>現在</div>
+        </div>
+        <div id="info">
+            <div class="maxint">最大震度<img src="source/eqm_int_.png"></div>
+            00月00日 00時00分ころ<br>
+            　震源地　：震源名<br>
+            地震の規模：M0.0<br>
+            震源の深さ：約00km
+        </div>
+        <div class="btns">
+            <div>
+                <select id="quakelist" style="width: 25em;height: calc(2em + 5px);"><option>地震情報の取得中…</option></select>
+                <span class="setsumei" style="padding: 0;padding-right: 5px;"><button id="reload">情報更新</button> <input type="number" id="reload_num" value="20" max="100">件</span>
+                <button id="map_ichi">位置初期化</button>
+                <button id="test">テスト開始</button>
+            </div>
+            <div style="margin-top: 5px;">
+                <span class="setsumei" id="theme_set" style="padding: 2px 5px;">テーマ 
+                    <input type="radio" name="theme" id="theme_nerv" value="nerv" onchange="theme_change(this.value)" checked><label for="theme_nerv">NERV</label>
+                    <input type="radio" name="theme" id="theme_wni" value="wni" onchange="theme_change(this.value)"><label for="theme_wni">ウェザーニュース</label>
+                    <input type="radio" name="theme" id="theme_quarog" value="quarog" onchange="theme_change(this.value)"><label for="theme_quarog">Quarog</label>
+                </span>
+                <span class="setsumei" id="icon_theme_set" style="padding: 2px 5px;">アイコン 
+                    <input type="radio" name="icon_theme" id="icon_theme_eqm" value="eqm" onchange="icon_theme_change(this.value)" checked><label for="icon_theme_eqm">EQM1</label>
+                    <input type="radio" name="icon_theme" id="icon_theme_jqk" value="jqk" onchange="icon_theme_change(this.value)"><label for="icon_theme_jqk">JQuake</label>
+                </span>
+                <span class="shindoichiran">
+                    <input type="checkbox" name="shindo_ichiran" id="shindo_ichiran_check"><label for="shindo_ichiran_check">各地の震度(テキスト)</label>
+                    <span class="setsumei autoreload_setsumei" style="padding: 0;padding-right: 5px;"><button id="autoreload">自動更新</button> <input type="number" id="autoreload_num" value="10">秒</span>
+                </span>
+            </div>
+        </div>
+        <div id="shindo_ichiran">
+            <div class="shindo_ichiran_title">各地の震度</div>
+            <div id="shindoichiran_title_num">全 000<span class="small">ヶ所</span></div>
+            <hr>
+            <div id="shindo_">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int_.png"></div>
+                <div id="shindo__article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo7">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int7.png"></div>
+                <div id="shindo7_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo65">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int65.png"></div>
+                <div id="shindo65_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo60">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int60.png"></div>
+                <div id="shindo60_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo55">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int55.png"></div>
+                <div id="shindo55_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo50">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int50.png"></div>
+                <div id="shindo50_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo4">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int4.png"></div>
+                <div id="shindo4_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo3">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int3.png"></div>
+                <div id="shindo3_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo2">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int2.png"></div>
+                <div id="shindo2_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+            <div id="shindo1">
+                <div class="shindo_ichiran_kakutitle">震度<img src="source/eqm_int1.png"></div>
+                <div id="shindo1_article"><ruby>○○市○○<rt>まるまるしまるまる</rt></ruby>　<ruby>△△市△△<rt>さんかくさんかくしさんかくさんかく</rt></ruby>　<ruby>□□町□□<rt>しかくしかくまちしかくしかく</rt></ruby></div>
+                <hr>
+            </div>
+        </div>
+        <script src="source/JMAPoints.js"></script>
+        <script src="source/SmoothWheelZoom.js"></script>
+        <script>
+            var Color_1 = "#46646e";var MojiColor_1 = "#ffffff";var Color_2 = "#1e6ee6";var MojiColor_2 = "#ffffff";var Color_3 = "#00c8c8";var MojiColor_3 = "#000000";var Color_4 = "#ffff64";var MojiColor_4 = "#000000";var Color_50 = "#ffb400";var MojiColor_50 = "#000000";var Color_55 = "#ff7800";var MojiColor_55 = "#000000";var Color_60 = "#e60000";var MojiColor_60 = "#ffffff";var Color_65 = "#a00000";var MojiColor_65 = "#ffffff";var Color_7 = "#960096";var MojiColor_7 = "#ffffff";var Color_0 = "#008b8b";var MojiColor_0 = "#ffffff";
+            var map = L.map('map', {
+                center: [36.575, 137.984],
+                zoom: 6,
+                minZoom: 2,
+                scrollWheelZoom: false,
+                smoothWheelZoom: true,
+            });
+            L.control.scale({ maxWidth: 150, position: 'bottomright', imperial: false }).addTo(map);  // スケールを表示
+            map.zoomControl.setPosition('topright');
+            var PolygonLayer_Style_nerv_1 = {
+                "color": "#ffffff",
+                "weight": 1,
+                "opacity": 1,
+                "fillColor": "#3a3a3a",
+                "fillOpacity": 1,
+            }
+            var PolygonLayer_Style_nerv_2 = {
+                "color": "#999999",
+                "weight": 1,
+                "opacity": 1,
+                "fillOpacity": 0,
+            }
+            var PolygonLayer_Style_nerv_3 = {
+                "color": "#999999",
+                "weight": 0.5,
+                "opacity": 1,
+                "fillOpacity": 0,
+            }
+            var PolygonLayer_Style_wni_1 = {
+                "color": "#000000",
+                "weight": 0.8,
+                "opacity": 1,
+                "fillColor": "#ffffff",
+                "fillOpacity": 1,
+            }
+            var PolygonLayer_Style_wni_2 = {
+                "color": "#ffffff",
+                "weight": 1,
+                "opacity": 1,
+                "fillOpacity": 0,
+            }
+            var PolygonLayer_Style_wni_3 = {
+                "color": "#999999",
+                "weight": 0.6,
+                "opacity": 1,
+                "fillOpacity": 0,
+            }
+            var PolygonLayer_Style_quarog_1 = {
+                "color": "#334948",
+                "weight": 1.2,
+                "opacity": 1,
+                "fillColor": "#508C78",
+                "fillOpacity": 1,
+            }
+            var PolygonLayer_Style_quarog_2 = {
+                "color": "#334948",
+                "weight": 1,
+                "opacity": 1,
+                "fillOpacity": 0,
+            }
+            var PolygonLayer_Style_quarog_3 = {
+                "color": "#334948",
+                "weight": 0.5,
+                "opacity": 1,
+                "fillOpacity": 0,
+            }
+            map.createPane("pane_map").style.zIndex = 1; //地図
+            map.createPane("shindo10").style.zIndex = 10;
+            map.createPane("shindo20").style.zIndex = 20;
+            map.createPane("shindo30").style.zIndex = 30;
+            map.createPane("shindo40").style.zIndex = 40;
+            map.createPane("shindo45").style.zIndex = 45;
+            map.createPane("shindo46").style.zIndex = 46;
+            map.createPane("shindo50").style.zIndex = 50;
+            map.createPane("shindo55").style.zIndex = 55;
+            map.createPane("shindo60").style.zIndex = 60;
+            map.createPane("shindo70").style.zIndex = 70;
+            map.createPane("shingen").style.zIndex = 100; //震源
+            Cookies.remove('visited');
+            var japan; //都道府県
+            var asia; //アジア地域高品質ポリゴン 
+            var countries; //アジア地域を除く世界の低品質ポリゴン  
+            var cities; //市区町村
+            var japan_data; //都道府県データ
+            var asia_data; //アジア地域高品質ポリゴンデータ 
+            var countries_data; //アジア地域を除く世界の低品質ポリゴンデータ
+            var cities_data; //市区町村データ
+            $.getJSON("https://miyakocam.github.io/RealtimeQuakeInfo_GeoJSON/Saibun.json", function (data) {
+                japan_data = data;
+                japan = L.geoJson(japan_data, {
+                    pane: "pane_map",
+                    style: PolygonLayer_Style_nerv_1,
+                }).addTo(map);
+            }); 
+            $.getJSON("../../html/RealtimeQuakeInfo/static/js/asia.geojson", function (data) {
+                asia_data = data;
+                asia = L.geoJson(asia_data, {
+                    pane: "pane_map",
+                    style: PolygonLayer_Style_nerv_2,
+                }).addTo(map);
+            });     
+            $.getJSON("../../html/RealtimeQuakeInfo/static/js/countries.geojson", function (data) {
+                countries_data = data;
+                countries = L.geoJson(countries_data, {
+                    pane: "pane_map",
+                    style: PolygonLayer_Style_nerv_2,
+                }).addTo(map);
+            });
+            $.getJSON("https://miyakocam.github.io/RealtimeQuakeInfo_GeoJSON/Cities.json", function (data) {
+                cities_data = data;
+                cities = L.geoJson(cities_data, {
+                    pane: "pane_map",
+                    style: PolygonLayer_Style_nerv_3,
+                });
+            });
+
+            map.on('zoomend', function(e) {
+                if (cities) {
+                    if (map.getZoom() < 7) {
+                        map.removeLayer(cities);
+                    } else {
+                        cities.addTo(map);
+                    }
+                }
+            });
+            if (cities) {
+                    
+                        cities.addTo(map);
+                    
+                }
+            
+            var QuakeJson;
+            var JMAPointsJson;
+            var maxint;
+            var shingen_icon;
+            var shindo_layer = L.layerGroup();
+            var test_on = "test_off";
+            var shingen_lnglat;
+            var fly_shingen_lnglat;
+            var fly_shingen_lnglat_2;
+            var gettime;
+            var autoreload_onoff;
+            var autoreload_onoff_num;
+            var autoreload_interval;
+            var icon_theme = "eqm";
+            
+
+            if (localStorage.getItem('autoreload_onoff') == "off") {
+                autoreload_onoff = "off";
+            } else {
+                document.getElementsByClassName('autoreload_setsumei')[0].classList.add('on');
+                autoreload_onoff = "on";
+                localStorage.setItem('autoreload_onoff','on');
+            }
+            if (localStorage.getItem('autoreload_onoff_num') == undefined) {
+                autoreload_onoff_num = 10;
+            } else {
+                autoreload_onoff_num = localStorage.getItem('autoreload_onoff_num');
+                document.getElementById('autoreload_num').value = localStorage.getItem('autoreload_onoff_num');
+            }
+
+            var list = document.getElementById('quakelist');
+            list.onchange = event => {
+                console.log(list.selectedIndex);
+                QuakeSelect(list.selectedIndex);
+            }
+            
+            document.getElementById('reload').addEventListener("click",()=>{
+                var koushin_ok;
+                var koushin;
+                clearTimeout(koushin);
+                clearTimeout(koushin_ok);
+                if (test_on == "test_on") {
+                    document.getElementById('test').click();
+                }
+                if (document.getElementById('reload_num').value != "") {
+                    if (document.getElementById('reload_num').value > 100) {
+                        GetQuake(100);
+                    } else {
+                        let num_kari = Math.abs(document.getElementById('reload_num').value);
+                        GetQuake(num_kari);
+                    }
+                } else {
+                    GetQuake();
+                }
+                document.getElementById('reload').innerText = "更新中…";
+                koushin = setTimeout(() => {
+                    document.getElementById('reload').innerText = "更新完了";
+                    koushin_ok = setTimeout(() => {
+                        document.getElementById('reload').innerText = "情報更新";
+                    }, 1000);
+                }, 1000);
+            });
+            document.getElementById('test').addEventListener("click",()=>{
+                if (test_on == "test_off") {
+                    test_on = "test_on";
+                    document.getElementById('test').innerText = "テスト終了";
+                } else {
+                    test_on = "test_off";
+                    document.getElementById('test').innerText = "テスト開始";
+                }
+                GetQuake(test_on);
+            });
+            document.getElementById('map_ichi').addEventListener("click",()=>{
+                if (fly_shingen_lnglat != undefined && fly_shingen_lnglat != 0) {
+                    if (document.getElementById('shindo_ichiran_check').checked) {
+                        if (fly_shingen_lnglat_2 != undefined && fly_shingen_lnglat_2 != 0) {
+                            map.flyTo(fly_shingen_lnglat_2, 7.5, { duration: 0.5 });
+                        }
+                    } else {
+                        map.flyTo(fly_shingen_lnglat, 7.5, { duration: 0.5 });
+                    }
+                } else {
+                    clearTimeout(syokikashippai);
+                    document.getElementById('map_ichi').innerText = "初期化失敗";
+                    var shokikashippai = setTimeout(() => {
+                        document.getElementById('map_ichi').innerText = "位置初期化";
+                    }, 1000);
+                }
+            });
+            document.getElementById('shindo_ichiran_check').addEventListener("change",()=>{
+                if (document.getElementById('shindo_ichiran_check').checked) {
+                    document.getElementById('shindo_ichiran').classList.add('display');
+                    if (fly_shingen_lnglat_2 != undefined && fly_shingen_lnglat_2 != 0) {
+                        map.flyTo(fly_shingen_lnglat_2, 7.5, { duration: 0.5 });
+                    }
+                } else {
+                    document.getElementById('shindo_ichiran').classList.add('display_none');
+                    setTimeout(() => {
+                        document.getElementById('shindo_ichiran').classList.remove('display_none');
+                        document.getElementById('shindo_ichiran').classList.remove('display');
+                    }, 450);
+                    if (fly_shingen_lnglat != undefined && fly_shingen_lnglat != 0) {
+                        map.flyTo(fly_shingen_lnglat, 7.5, { duration: 0.5 });
+                    }
+                }
+            });
+
+            document.getElementById('autoreload').addEventListener("click",()=>{
+                if (autoreload_onoff == "on") {
+                    document.getElementsByClassName('autoreload_setsumei')[0].classList.remove('on');
+                    autoreload_onoff = "off";
+                    localStorage.setItem('autoreload_onoff','off');
+                } else {
+                    document.getElementsByClassName('autoreload_setsumei')[0].classList.add('on');
+                    autoreload_onoff = "on";
+                    localStorage.setItem('autoreload_onoff','on');
+                }
+                interval();
+            });
+
+            document.getElementById('autoreload_num').addEventListener("change",()=>{
+                if (document.getElementById('autoreload_num').value <= 1) {
+                    autoreload_onoff_num = 2;
+                    localStorage.setItem('autoreload_onoff_num',autoreload_onoff_num);
+                } else {
+                    autoreload_onoff_num = document.getElementById('autoreload_num').value;
+                    localStorage.setItem('autoreload_onoff_num',autoreload_onoff_num);
+                }
+                interval();
+            });
+
+            function theme_change(theme_name) {
+                if (japan && asia && countries && cities) {
+                    map.removeLayer(japan);
+                    map.removeLayer(asia);
+                    map.removeLayer(countries);
+                    map.removeLayer(cities);
+                    eval('japan = L.geoJson(japan_data, {pane: "pane_map",style: PolygonLayer_Style_'+theme_name+'_1,}).addTo(map);');
+                    eval('asia = L.geoJson(asia_data, {pane: "pane_map",style: PolygonLayer_Style_'+theme_name+'_2,}).addTo(map);');
+                    eval('countries = L.geoJson(countries_data, {pane: "pane_map",style: PolygonLayer_Style_'+theme_name+'_2,}).addTo(map);');
+                    if (map.getZoom() >= 7) {
+                        eval('cities = L.geoJson(cities_data, {pane: "pane_map",style: PolygonLayer_Style_'+theme_name+'_3,}).addTo(map);');
+                    } else {
+                        eval('cities = L.geoJson(cities_data, {pane: "pane_map",style: PolygonLayer_Style_'+theme_name+'_3,});');
+                    }
+                    document.getElementById('map').classList.remove('background_nerv');
+                    document.getElementById('map').classList.remove('background_wni');
+                    document.getElementById('map').classList.remove('background_quarog');
+                    eval("document.getElementById('map').classList.add('background_"+theme_name+"');");
+                }
+            }
+            function icon_theme_change(theme_name) {
+                icon_theme = theme_name;
+                QuakeSelect(document.getElementById('quakelist').selectedIndex);
+            }
+
+            
+            async function GetJson() {
+                const url = "source/JMAstations.json";
+                const response = await fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        JMAPointsJson = data;
+                    });
+            }
+            GetJson();
+
+            async function GetQuake(option) {
+                if (option == "test_on") {
+                    var url = "https://api.p2pquake.net/v2/jma/quake?quake_type=DetailScale&min_scale=70&limit=5";
+                } else if (!isNaN(option)) {
+                    var url = "https://api.p2pquake.net/v2/history?codes=551&limit="+option;
+                } else {
+                    var url = "https://api.p2pquake.net/v2/history?codes=551&limit=20";
+                }
+                const response = await fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    QuakeJson = data;
+                    gettime = new Date();
+                    var getmonth = ('0' + (gettime.getMonth() + 1)).slice(-2);
+                    var getday = ('0' + gettime.getDate()).slice(-2);
+                    var gethour = ('0' + gettime.getHours()).slice(-2);
+                    var getminute = ('0' + gettime.getMinutes()).slice(-2);
+                    var getsecond = ('0' + gettime.getSeconds()).slice(-2);
+                    document.getElementById('title_time').innerHTML = getmonth+'<span class="small">月</span>'+getday+'<span class="small">日</span> '+gethour+'<span class="small">時</span>'+getminute+'<span class="small">分</span>'+getsecond+'<span class="small">秒</span>現在';
+                    var int = 0;
+                    while (list.lastChild) {
+                        list.removeChild(list.lastChild);
+                    }
+                    QuakeJson.forEach(element => {
+                        if (element['earthquake']['maxScale'] == 10){
+                            maxint = "1";
+                        } else if (element['earthquake']['maxScale'] == 20) {
+                            maxint = "2";
+                        } else if (element['earthquake']['maxScale'] == 30) {
+                            maxint = "3";
+                        } else if (element['earthquake']['maxScale'] == 40) {
+                            maxint = "4";
+                        } else if (element['earthquake']['maxScale'] == 45 || element['earthquake']['maxScale'] == 46) {
+                            maxint = "5弱";
+                        } else if (element['earthquake']['maxScale'] == 50) {
+                            maxint = "5強";
+                        } else if (element['earthquake']['maxScale'] == 55) {
+                            maxint = "6弱";
+                        } else if (element['earthquake']['maxScale'] == 60) {
+                            maxint = "6強";
+                        } else if (element['earthquake']['maxScale'] == 70) {
+                            maxint = "7";
+                        } else {
+                            maxint = "不明"
+                        }
+                        
+                        var option = document.createElement("option");
+                        var Kibo = Number(QuakeJson[int]["earthquake"]["hypocenter"]["magnitude"]).toFixed(1);
+                        if (Kibo == -1) {
+                            Kibo = "不明";
+                        }
+                        var text;
+                        if (QuakeJson[int]["issue"]["type"] != "ScalePrompt" && QuakeJson[int]["issue"]["type"] != "Foreign") {
+                            text = QuakeJson[int]["earthquake"]["time"].slice(0, -3) + " " + QuakeJson[int]["earthquake"]["hypocenter"]["name"] + " " +  "\n" + "\n最大震度 : " + maxint + " ";
+                        } else if (QuakeJson[int]["issue"]["type"] == "Foreign") {
+                            text = "【遠地地震】" + QuakeJson[int]["earthquake"]["time"].slice(0, -3) + " " + QuakeJson[int]["earthquake"]["hypocenter"]["name"];
+                        } else {
+                            text = "【震度速報】" + QuakeJson[int]["points"][0]["addr"] + "など " + "\n" + QuakeJson[int]["earthquake"]["time"].slice(0, -3) + "\n最大震度 : " + maxint + " ";
+                        }
+                        option.value = "" + int + "";
+                        option.textContent = text;
+                        list.appendChild(option);
+                        int++;
+                        
+                        
+                    });
+                    setTimeout(() => {
+                        
+                    QuakeSelect(0);
+                    }, 50);
+                })
+            }
+
+            function QuakeSelect(num) {
+                // map.eachLayer(function (layer) {
+                //     if (layer.myTag && layer.myTag === "Shindo") {
+                //         map.removeLayer(layer)
+                //     }
+                //     if (layer.myTag && layer.myTag === "Shingen") {
+                //         map.removeLayer(layer)
+                //     }
+                //     layer = null;
+                // });
+                if (shingen_icon && shindo_layer) {
+                    map.removeLayer(shindo_layer);
+                    shindo_layer = L.layerGroup();
+                    map.removeLayer(shingen_icon);
+                }
+
+                if (QuakeJson[num]["issue"]["type"] != "ScalePrompt") {
+                    let shingenIcon = L.icon({
+                        iconUrl: '../../html/RealtimeQuakeInfo/static/image/shingen.png',
+                        iconSize: [40,40],
+                        popupAnchor: [0,-60]
+                    });
+                    shingen_lnglat = new L.LatLng(QuakeJson[num]["earthquake"]["hypocenter"]["latitude"], QuakeJson[num]["earthquake"]["hypocenter"]["longitude"]);
+                    fly_shingen_lnglat = new L.LatLng(Number(QuakeJson[num]["earthquake"]["hypocenter"]["latitude"]), Number(QuakeJson[num]["earthquake"]["hypocenter"]["longitude"]) - 1);
+                    fly_shingen_lnglat_2 = new L.LatLng(Number(QuakeJson[num]["earthquake"]["hypocenter"]["latitude"]), Number(QuakeJson[num]["earthquake"]["hypocenter"]["longitude"]) + 0.5);
+                    shingen_icon = L.marker(shingen_lnglat, { icon: shingenIcon, pane: "shingen" }).addTo(map);
+                    let maxint_image;
+                    if (QuakeJson[num]['earthquake']['maxScale'] == 10){
+                        maxint = "1";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 20) {
+                        maxint = "2";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 30) {
+                        maxint = "3";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 40) {
+                        maxint = "4";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 45 || QuakeJson[num]['earthquake']['maxScale'] == 46) {
+                        maxint = "5弱";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 50) {
+                        maxint = "5強";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 55) {
+                        maxint = "6弱";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 60) {
+                        maxint = "6強";
+                    } else if (QuakeJson[num]['earthquake']['maxScale'] == 70) {
+                        maxint = "7";
+                    } else {
+                        maxint = "不明"
+                    }
+                    maxint_image = '<img src="source/'+icon_theme+'_int'+maxint+'.png" alt="震度'+maxint+'" title="震度'+maxint+'">';
+                    if (QuakeJson[num]['earthquake']['maxScale'] == -1) {
+                        maxint_image = '<img src="source/'+icon_theme+'_int_.png" alt="震度'+maxint+'" title="震度'+maxint+'">';
+                    }
+                    var depth;
+                    depth = "約"+QuakeJson[num]['earthquake']['hypocenter']['depth']+"km";
+                    if (QuakeJson[num]['earthquake']['hypocenter']['depth'] == -1) {
+                        depth = '不明'
+                    }
+                    shingen_icon.bindPopup('発生時刻：'+(QuakeJson[num]['earthquake']['time'])+'<br>最大震度：'+maxint+'<br>震源地：'+QuakeJson[num]['earthquake']['hypocenter']['name']+'<span style=\"font-size: 85%;\"> ('+QuakeJson[num]["earthquake"]["hypocenter"]["longitude"]+", "+QuakeJson[num]["earthquake"]["hypocenter"]["latitude"]+')</span><br>規模：M'+Number(QuakeJson[num]['earthquake']['hypocenter']['magnitude']).toFixed(1)+'　深さ：'+depth+'<br>受信：'+QuakeJson[num]['issue']['time']+', '+QuakeJson[num]['issue']['source'],{closeButton: false, zIndexOffset: 10000});
+                    shingen_icon.on('mouseover', function (e) {
+                        this.openPopup();
+                    });
+                    shingen_icon.on('mouseout', function (e) {
+                        this.closePopup();
+                    });
+                    var datekari = QuakeJson[num]['earthquake']['time'];
+                    let info_1danme = '<div class="maxint">最大震度'+maxint_image+'</div>';
+                    let info_2danme = datekari.substring(5,7)+'月'+datekari.substring(8,10)+'日 '+datekari.substring(11,13)+'時'+datekari.substring(14,16)+'分ごろ' +'<br>';
+                    let info_3danme = '　震源地　：'+QuakeJson[num]['earthquake']['hypocenter']['name'] +'<br>';
+                    let info_4danme = '地震の規模：M'+Number(QuakeJson[num]['earthquake']['hypocenter']['magnitude']).toFixed(1) +'<br>';
+                    let info_5danme = '震源の深さ：'+depth +'<br>';
+                    document.getElementById('info').innerHTML = info_1danme + info_2danme + info_3danme + info_4danme + info_5danme;
+                    
+                    document.getElementById('shindo1').classList.remove('display');
+                    document.getElementById('shindo2').classList.remove('display');
+                    document.getElementById('shindo3').classList.remove('display');
+                    document.getElementById('shindo4').classList.remove('display');
+                    document.getElementById('shindo50').classList.remove('display');
+                    document.getElementById('shindo55').classList.remove('display');
+                    document.getElementById('shindo60').classList.remove('display');
+                    document.getElementById('shindo65').classList.remove('display');
+                    document.getElementById('shindo7').classList.remove('display');
+                    document.getElementById('shindo_').classList.remove('display');
+                    document.getElementById('shindo1_article').innerHTML = "";
+                    document.getElementById('shindo2_article').innerHTML = "";
+                    document.getElementById('shindo3_article').innerHTML = "";
+                    document.getElementById('shindo4_article').innerHTML = "";
+                    document.getElementById('shindo50_article').innerHTML = "";
+                    document.getElementById('shindo55_article').innerHTML = "";
+                    document.getElementById('shindo60_article').innerHTML = "";
+                    document.getElementById('shindo65_article').innerHTML = "";
+                    document.getElementById('shindo7_article').innerHTML = "";
+                    document.getElementById('shindo__article').innerHTML = "";
+
+                    var maxint__num = 0;
+                    var maxint1_num = 0;
+                    var maxint2_num = 0;
+                    var maxint3_num = 0;
+                    var maxint4_num = 0;
+                    var maxint50_num = 0;
+                    var maxint55_num = 0;
+                    var maxint60_num = 0;
+                    var maxint65_num = 0;
+                    var maxint7_num = 0;
+
+                    QuakeJson[num]["points"].forEach(element => {
+                        //if ((document.getElementById('shindo_ichiran').innerHTML).indexOf(element["addr"]) == -1) {
+                            var result = JMAPoints.indexOf(element["addr"]);
+                            if (result != -1) {
+                                var ImgUrl = "";
+                                var PointShindo = "";
+                                var PointColor;
+                                var shindo_ichiran_doko;
+                                if (element["scale"] == 10) {
+                                    ImgUrl = "source/"+icon_theme+"_int1.png"
+                                    PointShindo = "震度1";
+                                    PointColor = Color_1;
+                                    shindo_ichiran_doko = "document.getElementById('shindo1_article')";
+                                    maxint1_num++;
+                                } else if (element["scale"] == 20) {
+                                    ImgUrl = "source/"+icon_theme+"_int2.png"
+                                    PointColor = Color_2;
+                                    PointShindo = "震度2";
+                                    shindo_ichiran_doko = "document.getElementById('shindo2_article')";
+                                    maxint2_num++;
+                                } else if (element["scale"] == 30) {
+                                    ImgUrl = "source/"+icon_theme+"_int3.png"
+                                    PointColor = Color_3;
+                                    PointShindo = "震度3";
+                                    shindo_ichiran_doko = "document.getElementById('shindo3_article')";
+                                    maxint3_num++;
+                                } else if (element["scale"] == 40) {
+                                    ImgUrl = "source/"+icon_theme+"_int4.png"
+                                    PointColor = Color_4;
+                                    PointShindo = "震度4";
+                                    shindo_ichiran_doko = "document.getElementById('shindo4_article')";
+                                    maxint4_num++;
+                                } else if (element["scale"] == 45) {
+                                    ImgUrl = "source/"+icon_theme+"_int50.png"
+                                    PointColor = Color_50;
+                                    PointShindo = "震度5弱";
+                                    shindo_ichiran_doko = "document.getElementById('shindo50_article')";
+                                    maxint50_num++;
+                                } else if (element["scale"] == 46) {
+                                    ImgUrl = "source/"+icon_theme+"_int50.png"
+                                    PointColor = Color_50;
+                                    PointShindo = "震度5弱以上と推定";
+                                    shindo_ichiran_doko = "document.getElementById('shindo50_article')";
+                                    maxint50_num++;
+                                } else if (element["scale"] == 50) {
+                                    ImgUrl = "source/"+icon_theme+"_int55.png"
+                                    PointColor = Color_55;
+                                    PointShindo = "震度5強";
+                                    shindo_ichiran_doko = "document.getElementById('shindo55_article')";
+                                    maxint55_num++;
+                                } else if (element["scale"] == 55) {
+                                    ImgUrl = "source/"+icon_theme+"_int60.png"
+                                    PointColor = Color_60;
+                                    PointShindo = "震度6弱";
+                                    shindo_ichiran_doko = "document.getElementById('shindo60_article')";
+                                    maxint60_num++;
+                                } else if (element["scale"] == 60) {
+                                    ImgUrl = "source/"+icon_theme+"_int65.png"
+                                    PointColor = Color_65;
+                                    PointShindo = "震度6強";
+                                    shindo_ichiran_doko = "document.getElementById('shindo65_article')";
+                                    maxint65_num++;
+                                } else if (element["scale"] == 70) {
+                                    ImgUrl = "source/"+icon_theme+"_int7.png"
+                                    PointColor = Color_7;
+                                    PointShindo = "震度7";
+                                    shindo_ichiran_doko = "document.getElementById('shindo7_article')";
+                                    maxint7_num++;
+                                } else {
+                                    ImgUrl = "source/"+icon_theme+"_int_.png"
+                                    PointColor = Color_;
+                                    PointShindo = "震度不明";
+                                    shindo_ichiran_doko = "document.getElementById('shindo__article')";
+                                    maxint__num++;
+                                }
+
+                                eval(shindo_ichiran_doko+'.innerHTML += "<ruby>'+element["addr"] + '<rt>' + JMAPointsJson[result]["furigana"] + '</rt></ruby>　"');
+
+                                if (element["isArea"] == false) {
+                                    let shindo_latlng = new L.LatLng(JMAPointsJson[result]["lat"], JMAPointsJson[result]["lon"]);
+                                    let shindoIcon = L.icon({
+                                        iconUrl: ImgUrl,
+                                        iconSize: [20, 20],
+                                        popupAnchor: [0, -40]
+                                    });
+                                    var shindo_icon = L.marker(shindo_latlng, { icon: shindoIcon,pane: eval('\"shindo'+element["scale"]+'\"') });
+                                    shindo_icon.bindPopup('<ruby>'+element["addr"] + '<rt style="font-size: 0.7em;">' + JMAPointsJson[result]["furigana"] + '</rt></ruby>　'+ PointShindo,{closeButton: false, zIndexOffset: 10000,autoPan: false,});
+                                    shindo_icon.on('mouseover', function (e) {
+                                        this.openPopup();
+                                    });
+                                    shindo_icon.on('mouseout', function (e) {
+                                        this.closePopup();
+                                    });
+                                    shindo_layer.addLayer(shindo_icon);
+                                    console.log(element["addr"] + " " + PointShindo + " OK");
+                                    
+                                }
+                            }
+                        //}
+                        
+                    });
+                    let shindo_ichiran_kakutitle = document.getElementsByClassName('shindo_ichiran_kakutitle');
+                    let shindo_ichiran_kakutitle_1 = '震度<img src="source/'+icon_theme+'_int';
+                    let shindo_ichiran_kakutitle_2 = '<span class="kasho_small">ヶ所</span>';
+                    shindo_ichiran_kakutitle[0].innerHTML = shindo_ichiran_kakutitle_1+'_.png">　'+maxint__num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[1].innerHTML = shindo_ichiran_kakutitle_1+'7.png">　'+maxint7_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[2].innerHTML = shindo_ichiran_kakutitle_1+'65.png">　'+maxint65_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[3].innerHTML = shindo_ichiran_kakutitle_1+'60.png">　'+maxint60_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[4].innerHTML = shindo_ichiran_kakutitle_1+'55.png">　'+maxint55_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[5].innerHTML = shindo_ichiran_kakutitle_1+'50.png">　'+maxint50_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[6].innerHTML = shindo_ichiran_kakutitle_1+'4.png">　'+maxint4_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[7].innerHTML = shindo_ichiran_kakutitle_1+'3.png">　'+maxint3_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[8].innerHTML = shindo_ichiran_kakutitle_1+'2.png">　'+maxint2_num+shindo_ichiran_kakutitle_2;
+                    shindo_ichiran_kakutitle[9].innerHTML = shindo_ichiran_kakutitle_1+'1.png">　'+maxint1_num+shindo_ichiran_kakutitle_2;
+                    let maxint_sum = maxint__num+maxint1_num+maxint2_num+maxint3_num+maxint4_num+maxint50_num+maxint55_num+maxint60_num+maxint65_num+maxint7_num;
+                    document.getElementById('shindoichiran_title_num').innerHTML = '全 '+maxint_sum+'<span class="small">ヶ所</span>';
+                    if (document.getElementById('shindo1_article').innerHTML == "") {document.getElementById('shindo1').classList.add('display')}
+                    if (document.getElementById('shindo2_article').innerHTML == "") {document.getElementById('shindo2').classList.add('display')}
+                    if (document.getElementById('shindo3_article').innerHTML == "") {document.getElementById('shindo3').classList.add('display')}
+                    if (document.getElementById('shindo4_article').innerHTML == "") {document.getElementById('shindo4').classList.add('display')}
+                    if (document.getElementById('shindo50_article').innerHTML == "") {document.getElementById('shindo50').classList.add('display')}
+                    if (document.getElementById('shindo55_article').innerHTML == "") {document.getElementById('shindo55').classList.add('display')}
+                    if (document.getElementById('shindo60_article').innerHTML == "") {document.getElementById('shindo60').classList.add('display')}
+                    if (document.getElementById('shindo65_article').innerHTML == "") {document.getElementById('shindo65').classList.add('display')}
+                    if (document.getElementById('shindo7_article').innerHTML == "") {document.getElementById('shindo7').classList.add('display')}
+                    if (document.getElementById('shindo__article').innerHTML == "") {document.getElementById('shindo_').classList.add('display')}
+                    shindo_layer.addTo(map);
+                    if (document.getElementById('shindo_ichiran_check').checked) {
+                        if (fly_shingen_lnglat_2 != undefined && fly_shingen_lnglat_2 != 0) {
+                            map.flyTo(fly_shingen_lnglat_2, 7.5, { duration: 0.5 });
+                        }
+                    } else {
+                        map.flyTo(fly_shingen_lnglat, 7.5, { duration: 0.5 });
+                    }
+                    Cookies.set('visited','already');
+                }
+            }
+
+            GetQuake();
+            function interval() {
+                autoreload_onoff_num_get();
+                autoreload_onoff_num *= 1000;
+                if (autoreload_onoff == "on") {
+                    if (autoreload_interval != null || autoreload_interval != 0) {
+                        clearInterval(autoreload_interval);
+                        autoreload_interval = null;
+                    }
+                    autoreload_interval = setInterval(() => {
+                        if (autoreload_onoff_num <= 3000) {
+                            GetQuake();
+                        } else {
+                            document.getElementById('reload').click();
+                        }
+                    }, autoreload_onoff_num);
+                } else {
+                    clearInterval(autoreload_interval);
+                    autoreload_interval = null;
+                }
+            }
+            if (autoreload_onoff == "on") {
+                interval();
+            }
+            function autoreload_onoff_num_get(){
+                if (localStorage.getItem('autoreload_onoff_num')){
+                    autoreload_onoff_num = localStorage.getItem('autoreload_onoff_num');
+                } else {
+                    autoreload_onoff_num = 10;
+                }
+                
+            }
+        </script>
+    </body>
+</html>
